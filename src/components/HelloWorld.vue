@@ -1,43 +1,134 @@
+<script>
+import axios from "axios";
+
+export default {
+  name: "HelloWorld",
+  props: {
+    msg: String,
+  },
+  data() {
+    return {
+      filterValue: "",
+      rowSize: "",
+      autoWidth: false,
+      sortable: false,
+      title: "Countries",
+      columns: ["Name", "Capital", "Region", "Flag"],
+      jsonData: null,
+      use_actions: true,
+      use_batchActions: true,
+    };
+  },
+  methods: {
+    onFilter(val) {
+      console.log(`onfilter methoduna gelen val : ${val}`);
+      this.filterValue = val;
+    },
+    onSort(sortBy) {
+      if (sortBy) {
+        this.internalData.sort((a, b) => {
+          const itemA = a[sortBy.index];
+          const itemB = b[sortBy.index];
+
+          if (sortBy.order === "descending") {
+            if (sortBy.index === 2) {
+              // sort as number
+              return parseFloat(itemA) - parseFloat(itemB);
+            } else {
+              return itemB.localeCompare(itemA);
+            }
+          }
+          if (sortBy.order === "ascending") {
+            if (sortBy.index === 2) {
+              // sort as number
+              return parseFloat(itemB) - parseFloat(itemA);
+            } else {
+              return itemA.localeCompare(itemB);
+            }
+          }
+          return 0;
+        });
+      }
+    },
+  },
+  mounted() {
+    axios.get("https://restcountries.eu/rest/v2/all").then(
+      (response) =>
+        (this.jsonData = response.data.map(
+          ({ name, capital, region, flag }) => ({
+            name,
+            capital,
+            region,
+            flag,
+          })
+        ))
+    );
+  },
+  watch: {},
+  computed: {
+    filteredData: function () {
+      let newData;
+      if (this.filterValue) {
+        const regex = new RegExp(this.filterValue, "i");
+        newData = this.jsonData.filter((item) => {
+          return Object.values(item).filter((st) => {
+            return st.search(regex) >= 0;
+          }).length > 0
+            ? true
+            : false;
+        });
+      } else {
+        newData = this.jsonData;
+      }
+      if (this.pageStart) {
+        return newData.slice(this.pageStart, this.pageStart + this.pageLength);
+      } else {
+        return newData;
+      }
+    },
+  },
+};
+</script>
+
 <template>
   <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+    <cv-data-table
+      :sortable="sortable"
+      :columns="columns"
+      searchLabel="Filter"
+      searchPlaceholder="Filter"
+      searchClearLabel="Clear filter"
+      
+      @search="onFilter"
+      @sort="onSort"
+      ref="table"
+    >
+    <template slot="data">
+       <cv-data-table-row
+          v-for="(row, rowIndex) in filteredData"
+          :key="`${rowIndex}`"
+          :value="`${rowIndex}`"
+        >
+         <cv-data-table-cell>
+            <p>{{row.name}}</p>
+          </cv-data-table-cell>
+          <cv-data-table-cell>
+            <p>{{row.capital}}</p>
+          </cv-data-table-cell>
+          <cv-data-table-cell>
+            <p>{{row.region}}</p>
+          </cv-data-table-cell>
+          <cv-data-table-cell>
+            <img :src="row.flag" style="height: 50px; width:50px" />
+          </cv-data-table-cell>
+        </cv-data-table-row>
+    </template>
+    </cv-data-table>
+   
   </div>
 </template>
 
-<script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
-}
-</script>
+
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
